@@ -1,8 +1,8 @@
-#PROBLEMAS A CORRIGIR: REPLICAÇÃO (OK) TRY_SERVER_LATER
+#PROBLEMAS A CORRIGIR: REPLICAÇÃO (OK) TRY_SERVER_LATER (ok)
 
 import socket
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta # Importe a classe datetime aqui
 import random
 
 class Message:
@@ -52,12 +52,8 @@ class Server:
     
     def replicate_data(self, message):
         for server_port in self.servers_address:
-            print(f"Lista de servidores: {server}")
-            print(f"copiando para {self.ip}:{self.port}")
             if server != self.port:
-                print(f"copiou para {self.port}")
                 self.send_message(message, self.ip, server_port)
-                self.print_data()  # Chama a função print_data após a replicação
 
 
     def handle_client(self, connection, address):
@@ -76,7 +72,6 @@ class Server:
                     response = self.send_message(message, self.leader[0], self.leader[1])
                     print(response)
                 with self.lock:
-                    print("ENTROU NO LOCK")
                     self.data[message.key] = (message.value, message.timestamp)
                 response = f"PUT_OK {message.timestamp}"
                 # Replicar os dados para outros servidores
@@ -84,7 +79,6 @@ class Server:
                 self.replicate_data(replication_message)
 
             elif message.command == "REPLICATION":
-                print("entrou na replicação")
                 with self.lock:
                     if message.key in self.data:
                         self.data[message.key] = (message.value, message.timestamp)
@@ -93,13 +87,13 @@ class Server:
                 response = "REPLICATION_OK"
 
             elif message.command == "REPLICATION_OK":
-                print(message.command)
                 response = f"PUT_OK {message.timestamp}"
 
 
             elif message.command == "GET":
                 with self.lock:
                     if message.key in self.data:
+                        client_timestamp = message.timestamp
                         value, timestamp_server = self.data[message.key]
                         if client_timestamp is None or timestamp_server >= client_timestamp:
                             response = f"{value} {timestamp_server}"
@@ -117,12 +111,6 @@ class Server:
             connection.send(response.encode())
 
         connection.close()
-
-    def print_data(self):
-        with self.lock:
-            print("Imprimindo dados do servidor", self.ip, ":", self.port)
-            for key, (value, timestamp) in self.data.items():
-                print(f"Chave: {key}, Valor: {value}, Timestamp: {timestamp}")
 
 
     def start(self):
