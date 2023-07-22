@@ -1,3 +1,5 @@
+#PROBLEMAS A CORRIGIR: REPLICAÇÃO (OK) TRY_SERVER_LATER
+
 import socket
 import threading
 from datetime import datetime
@@ -32,9 +34,9 @@ class Server:
         self.leader_ip = input("Enter leader IP: ")
         self.leader_port = int(input("Enter leader port: "))
         self.leader = (self.leader_ip, self.leader_port)
-        self.servers = [(self.ip, self.port), self.leader]  # Lista de servidores incluindo o líder
         self.data = {}
         self.lock = threading.Lock()
+        self.servers_address = [10099,10098,10097]
 
     def send_message(self, message, ip, port):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,38 +49,19 @@ class Server:
 
         return response
 
+    
     def replicate_data(self, message):
-        for server in self.servers:
-            if server != self.leader:
-                self.send_message(message, server[0], server[1])
+        for server_port in self.servers_address:
+            print(f"Lista de servidores: {server}")
+            print(f"copiando para {self.ip}:{self.port}")
+            if server != self.port:
+                print(f"copiou para {self.port}")
+                self.send_message(message, self.ip, server_port)
+                self.print_data()  # Chama a função print_data após a replicação
 
-    def put(self, key, value):
-        if (self.ip, self.port) != self.leader:
-            response = self.send_message(Message("PUT", key, value), self.leader[0], self.leader[1])
-            print(response)
-            return
-
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with self.lock:
-            self.data[key] = (value, timestamp)
-
-        replication_message = Message("REPLICATION", key, value, timestamp)
-        self.replicate_data(replication_message)
-
-        print(f"PUT_OK key: {key} value: {value} timestamp: {timestamp}")
-
-    def get(self, key, client_timestamp=None):
-        value = None
-        timestamp_server = None
-        with self.lock:
-            if key in self.data:
-                value, timestamp_server = self.data[key]
-        if value is not None and (client_timestamp is None or timestamp_server >= client_timestamp):
-            return f"{value} {timestamp_server}"
-        return "TRY_OTHER_SERVER_OR_LATER" if self.leader != (self.ip, self.port) else "NULL"
 
     def handle_client(self, connection, address):
-        client_timestamp = None  # Inicializar o timestamp do cliente para essa conexão como None
+        client_timestamp = None
 
         while True:
             data = connection.recv(1024).decode()
@@ -89,23 +72,44 @@ class Server:
             response = ""
 
             if message.command == "PUT":
-                self.put(message.key, message.value)
+                if (self.ip, self.port) != self.leader:
+                    response = self.send_message(message, self.leader[0], self.leader[1])
+                    print(response)
+                with self.lock:
+                    print("ENTROU NO LOCK")
+                    self.data[message.key] = (message.value, message.timestamp)
                 response = f"PUT_OK {message.timestamp}"
+                # Replicar os dados para outros servidores
+                replication_message = Message("REPLICATION", message.key, message.value, message.timestamp)
+                self.replicate_data(replication_message)
 
             elif message.command == "REPLICATION":
+                print("entrou na replicação")
                 with self.lock:
                     if message.key in self.data:
                         self.data[message.key] = (message.value, message.timestamp)
                     else:
                         self.data[message.key] = (message.value, message.timestamp)
                 response = "REPLICATION_OK"
-                print(response)
+
+            elif message.command == "REPLICATION_OK":
+                print(message.command)
+                response = f"PUT_OK {message.timestamp}"
+
 
             elif message.command == "GET":
-                response = self.get(message.key, message.timestamp)
+                with self.lock:
+                    if message.key in self.data:
+                        value, timestamp_server = self.data[message.key]
+                        if client_timestamp is None or timestamp_server >= client_timestamp:
+                            response = f"{value} {timestamp_server}"
+                        else:
+                            response = "TRY_OTHER_SERVER_OR_LATER"
+                    else:
+                        response = "NULL"
 
-                # Atualizar o timestamp do cliente
-                client_timestamp = message.timestamp
+                    # Atualizar o timestamp do cliente
+                    client_timestamp = message.timestamp
 
             else:
                 response = "Invalid command."
@@ -113,6 +117,13 @@ class Server:
             connection.send(response.encode())
 
         connection.close()
+
+    def print_data(self):
+        with self.lock:
+            print("Imprimindo dados do servidor", self.ip, ":", self.port)
+            for key, (value, timestamp) in self.data.items():
+                print(f"Chave: {key}, Valor: {value}, Timestamp: {timestamp}")
+
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
