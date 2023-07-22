@@ -1,8 +1,8 @@
-#PROBLEMAS A CORRIGIR, REPLICACAO E TRY_SERVER_LATER
+#PROBLEMAS A CORRIGIR, REPLICACAO (ok) E TRY_SERVER_LATER
 
 import socket
 import random
-from datetime import datetime  # Importe a classe datetime aqui
+from datetime import datetime, timedelta # Importe a classe datetime aqui
 
 class Message:
     def __init__(self, command, key, value=None, timestamp=None):
@@ -48,7 +48,8 @@ class Client:
 
     def put(self, key, value):
         server_ip, server_port = random.choice(self.servers)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now()  # Obter o timestamp atual
+        timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Converter o timestamp de volta para string
         message = Message("PUT", key, value, timestamp)
         response = self.send_message(message)
 
@@ -59,11 +60,15 @@ class Client:
     def get(self, key):
         server_ip, server_port = random.choice(self.servers)
         if key in self.timestamps:
-            timestamp = self.timestamps[key]
+            timestamp_str = self.timestamps[key]  # Obtém o timestamp armazenado pelo cliente
+            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")  # Converter o timestamp de volta para datetime
         else:
             timestamp = None
 
-        message = Message("GET", key, timestamp=timestamp)
+        random_seconds = random.randint(0,1)  # Gerar um valor aleatório de segundos entre 0 e 1
+        timestamp += timedelta(seconds=random_seconds)  # Adicionar o valor aleatório de segundos ao timestamp
+        timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Converter o timestamp para string
+        message = Message("GET", key, timestamp=timestamp_str)
         response = self.send_message(message)
 
         if response.startswith("TRY_OTHER_SERVER_OR_LATER"):
