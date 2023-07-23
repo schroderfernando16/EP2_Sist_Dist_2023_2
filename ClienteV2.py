@@ -120,7 +120,7 @@ class Client:
             else:
                 print("Opção Inválida, tente novamente.")
 
-# Exemplo de uso do cliente
+#Código main
 if __name__ == "__main__":
     client = Client()
     client.run()
