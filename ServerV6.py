@@ -104,16 +104,16 @@ class Server:
             elif message.command == "GET":
                 if message.key in self.data:
                     client_timestamp = message.timestamp
+                    print(client_timestamp)
                     value, timestamp_server = self.data[message.key]
-                    if client_timestamp is None or timestamp_server >= client_timestamp:
+                    if (message.timestamp == "None"): 
+                        response = f"{value} {timestamp_server}"
+                    elif (timestamp_server >= client_timestamp):
                         response = f"{value} {timestamp_server}"
                     else:
                         response = "TRY_OTHER_SERVER_OR_LATER"
                 else:
                     response = "NULL"
-
-                # Atualizar o timestamp do cliente
-                client_timestamp = message.timestamp
 
                 if response != "NULL":
                     print(f"Cliente {address[0]}:{address[1]} GET key:{message.key} ts:{message.timestamp}. Meu ts é {self.data[message.key][1]}, portanto devolvendo {self.data[message.key][0]}")
