@@ -98,7 +98,7 @@ class Client:
             print("4. Exit")
             choice = input("Enter your choice: ")
             # Capturar IPs e portas dos servidores do teclado, função INIT
-            if choice== "1":
+            if choice == "1":
                 print("Sistema Iniciado")
                 for _ in range(3):
                     ip = input("Enter server IP: ")
@@ -120,7 +120,7 @@ class Client:
             else:
                 print("Opção Inválida, tente novamente.")
 
-#Código main
+#Código Main
 if __name__ == "__main__":
     client = Client()
     client.run()
