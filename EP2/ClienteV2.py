@@ -1,8 +1,10 @@
-#PROBLEMAS A CORRIGIR, REPLICACAO (ok) E TRY_SERVER_LATER
+#Versão final do código do Cliente
 
 import socket
 import random
 from datetime import datetime, timedelta # Importe a classe datetime aqui
+
+
 
 class Message:
     def __init__(self, command, key, value=None, timestamp=None):
@@ -62,13 +64,14 @@ class Client:
         if key in self.timestamps:
             timestamp_str = self.timestamps[key]  # Obtém o timestamp armazenado pelo cliente
             timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")  # Converter o timestamp de volta para datetime
+            random_seconds = random.randint(0,1)  # Gerar um valor aleatório de segundos entre 0 e 1
+            timestamp += timedelta(seconds=random_seconds)  # Adicionar o valor aleatório de segundos ao timestamp
+            timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Converter o timestamp para string
         else:
             timestamp = None
 
-        random_seconds = random.randint(0,1)  # Gerar um valor aleatório de segundos entre 0 e 1
-        timestamp += timedelta(seconds=random_seconds)  # Adicionar o valor aleatório de segundos ao timestamp
-        timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")  # Converter o timestamp para string
-        message = Message("GET", key, timestamp=timestamp_str)
+
+        message = Message("GET", key, timestamp=timestamp)
         response = self.send_message(message)
 
         if response.startswith("TRY_OTHER_SERVER_OR_LATER"):
@@ -85,21 +88,22 @@ class Client:
     def run(self):
         while True:
             print("\nMenu:")
-            print("1. PUT")
-            print("2. GET")
-            print("3. Exit")
+            print("1. INIT")
+            print("2. PUT")
+            print("3. GET")
+            print("4. Exit")
             choice = input("Enter your choice: ")
 
-            if choice == "1":
+            if choice == "2":
                 key = input("Enter key: ")
                 value = input("Enter value: ")
                 self.put(key, value)
 
-            elif choice == "2":
+            elif choice == "3":
                 key = input("Enter key: ")
                 self.get(key)
 
-            elif choice == "3":
+            elif choice == "4":
                 break
 
             else:
@@ -114,8 +118,23 @@ if __name__ == "__main__":
         ip = input("Enter server IP: ")
         port = int(input("Enter server port: "))
         client.add_server(ip, port)
+    choice =  "0"
+    while choice != 1:
+        print("\nMenu:")
+        print("1. Init")
+        print("2. PUT")
+        print("3. GET")
+        print("4. Exit")
+        choice = input("Enter your choice: ")
 
-    client.run()
+        if choice == "1":
+                client.run()
+
+        elif choice == "4":
+            break
+
+        else:
+            print("Invalid choice. Try again.")
 
 
 
